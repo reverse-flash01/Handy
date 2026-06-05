@@ -1,0 +1,44 @@
+name: "Windows Store Build"
+
+# Produces signed MSI artifacts suitable for submission to the Microsoft Store
+# via Microsoft Partner Center (EXE or MSI app product type).
+#
+# Trigger this workflow manually after creating a GitHub release, optionally
+# providing the release ID to attach the Store artifacts to that release.
+#
+# The artifacts are named handy-store-* to distinguish them from the standard
+# release builds (handy-*) produced by release.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-id:
+        description: "GitHub release ID to attach artifacts to (leave empty for artifact-only build)"
+        required: false
+        type: string
+
+jobs:
+  build-store:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "windows-latest"
+            target: "x86_64-pc-windows-msvc"
+            args: "--bundles msi --config src-tauri/tauri.microsoftstore.conf.json"
+          - platform: "windows-11-arm"
+            target: "aarch64-pc-windows-msvc"
+            args: "--target aarch64-pc-windows-msvc --bundles msi --config src-tauri/tauri.microsoftstore.conf.json"
+
+    uses: ./.github/workflows/build.yml
+    with:
+      platform: ${{ matrix.platform }}
+      target: ${{ matrix.target }}
+      build-args: ${{ matrix.args }}
+      sign-binaries: true
+      asset-prefix: "handy-store"
+      upload-artifacts: true
+      release-id: ${{ inputs.release-id }}
+    secrets: inherit
